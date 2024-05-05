@@ -23,6 +23,7 @@ from datasets_prep.lsun import LSUN
 from datasets_prep.stackmnist_data import StackedMNIST, _data_transforms_stacked_mnist
 from datasets_prep.lmdb_datasets import LMDBDataset
 
+from torchvision.datasets import ImageFolder
 
 from torch.multiprocessing import Process
 import torch.distributed as dist
@@ -201,6 +202,7 @@ def train(rank, gpu, args):
     
     nz = args.nz #latent dimension
     
+    
     if args.dataset == 'cifar10':
         dataset = CIFAR10('./data', train=True, transform=transforms.Compose([
                         transforms.Resize(32),
@@ -236,8 +238,20 @@ def train(rank, gpu, args):
                 transforms.Normalize((0.5,0.5,0.5), (0.5,0.5,0.5))
             ])
         dataset = LMDBDataset(root='/datasets/celeba-lmdb/', name='celeba', train=True, transform=train_transform)
-      
-    
+    elif args.dataset == "custom":
+        transform = transforms.Compose([
+        transforms.Resize(args.image_size),
+        transforms.RandomHorizontalFlip(),
+        transforms.ToTensor(),
+        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+        ])
+
+        # Load training dataset
+        dataset = ImageFolder(root='./dataset/train_batch', transform=transform)
+
+        # Load test dataset
+        test_dataset = ImageFolder(root='./dataset/test_batch', transform=transform)  
+        
     
     train_sampler = torch.utils.data.distributed.DistributedSampler(dataset,
                                                                     num_replicas=args.world_size,
@@ -373,7 +387,7 @@ def train(rank, gpu, args):
 
             # train with fake
             latent_z = torch.randn(batch_size, nz, device=device)
-            
+            #print(x_tp1.shape)
          
             x_0_predict = netG(x_tp1.detach(), t, latent_z)
             x_pos_sample = sample_posterior(pos_coeff, x_0_predict, x_tp1, t)
@@ -539,7 +553,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--z_emb_dim', type=int, default=256)
     parser.add_argument('--t_emb_dim', type=int, default=256)
-    parser.add_argument('--batch_size', type=int, default=128, help='input batch size')
+    parser.add_argument('--batch_size', type=int, default=32, help='input batch size')
     parser.add_argument('--num_epoch', type=int, default=1200)
     parser.add_argument('--ngf', type=int, default=64)
 
