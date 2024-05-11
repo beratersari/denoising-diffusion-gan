@@ -146,9 +146,9 @@ def repeat_kv(x: torch.Tensor, n_rep: int) -> torch.Tensor:
     )
 @dataclass
 class ModelArgs:
-    dim: int = 4096
-    n_heads: int = 32
-    n_kv_heads = 8
+    dim: int = 256
+    n_heads: int = 16
+    n_kv_heads = 4
     # Needed for KV cache
     max_batch_size: int = 32
     max_seq_len: int = 2048
@@ -218,11 +218,11 @@ class SelfAttention(nn.Module):
         values = repeat_kv(values, self.n_rep)
 
         # (B, 1, H_Q, Head_Dim) -> (B, H_Q, 1, Head_Dim)
-        xq = xq.transpose(1, 2)
+        xq = xq.transpose(1, 2).to(xq.device)
         # (B, Seq_Len_KV, H_Q, Head_Dim) -> (B, H_Q, Seq_Len_KV, Head_Dim)
-        keys = keys.transpose(1, 2)
+        keys = keys.transpose(1, 2).to(xq.device)
         # (B, Seq_Len_KV, H_Q, Head_Dim) -> (B, H_Q, Seq_Len_KV, Head_Dim)
-        values = values.transpose(1, 2)
+        values = values.transpose(1, 2).to(xq.device)
 
         # (B, H_Q, 1, Head_Dim) @ (B, H_Q, Head_Dim, Seq_Len_KV) -> (B, H_Q, 1, Seq_Len_KV)
         scores = torch.matmul(xq, keys.transpose(2, 3)) / math.sqrt(self.head_dim)
@@ -248,8 +248,9 @@ class AttnBlockpp(nn.Module):
   def forward(self, x):
     B, C, H, W = x.shape
     h = self.GroupNorm_0(x)
-    h = h.view(B, 1,C*H*W)
-    h = self.attention(h)
+    freqs_complex = precompute_theta_pos_frequencies(self.args.n_heads, C, x.device)
+    h = h.view(B, C, H*W)
+    h = self.attention.forward(h, 0, freqs_complex)
     h = h.view(B, C, H, W)
     if not self.skip_rescale:
       return x + h
