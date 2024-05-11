@@ -28,7 +28,6 @@
 # limitations under the License.
 
 # pylint: skip-file
-
 from . import layers
 from . import up_or_down_sampling, dense_layer
 import torch.nn as nn
@@ -37,6 +36,7 @@ import torch.nn.functional as F
 import numpy as np
 import math
 from dataclasses import dataclass
+torch.autograd.set_detect_anomaly(True)
 
 conv1x1 = layers.ddpm_conv1x1
 conv3x3 = layers.ddpm_conv3x3
@@ -171,9 +171,6 @@ class SelfAttention(nn.Module):
         self.wv = nn.Linear(args.dim, self.n_kv_heads * self.head_dim, bias=False)
         self.wo = nn.Linear(args.n_heads * self.head_dim, args.dim, bias=False)
 
-        self.cache_k = torch.zeros((args.max_batch_size, args.max_seq_len, self.n_kv_heads, self.head_dim))
-        self.cache_v = torch.zeros((args.max_batch_size, args.max_seq_len, self.n_kv_heads, self.head_dim))
-
     def forward(
         self,
         x: torch.Tensor,
@@ -201,15 +198,11 @@ class SelfAttention(nn.Module):
         # (B, 1, H_KV, Head_Dim) --> (B, 1, H_KV, Head_Dim)
         xk = apply_rotary_embeddings(xk, freqs_complex, device=x.device)
 
-        # Replace the entry in the cache
-        self.cache_k[:batch_size, start_pos : start_pos + seq_len] = xk
-        self.cache_v[:batch_size, start_pos : start_pos + seq_len] = xv
 
         # (B, Seq_Len_KV, H_KV, Head_Dim)
-        keys = self.cache_k[:batch_size, : start_pos + seq_len]
+        keys = xk
         # (B, Seq_Len_KV, H_KV, Head_Dim)
-        values = self.cache_v[:batch_size, : start_pos + seq_len]
-
+        values = xv
         # Since every group of Q shares the same K and V heads, just repeat the K and V heads for every Q in the same group.
 
         # (B, Seq_Len_KV, H_KV, Head_Dim) --> (B, Seq_Len_KV, H_Q, Head_Dim)
@@ -250,7 +243,7 @@ class AttnBlockpp(nn.Module):
     h = self.GroupNorm_0(x)
     freqs_complex = precompute_theta_pos_frequencies(self.args.n_heads, C, x.device)
     h = h.view(B, C, H*W)
-    h = self.attention.forward(h, 0, freqs_complex)
+    h = self.attention(h, 0, freqs_complex)
     h = h.view(B, C, H, W)
     if not self.skip_rescale:
       return x + h
