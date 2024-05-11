@@ -199,9 +199,7 @@ def train(rank, gpu, args):
     device = torch.device('cuda:{}'.format(gpu))
     
     batch_size = args.batch_size
-    
     nz = args.nz #latent dimension
-    
     
     if args.dataset == 'cifar10':
         dataset = CIFAR10('./data', train=True, transform=transforms.Compose([
@@ -384,7 +382,6 @@ def train(rank, gpu, args):
                 
                     grad_penalty = args.r1_gamma / 2 * grad_penalty
                     grad_penalty.backward()
-
             # train with fake
             latent_z = torch.randn(batch_size, nz, device=device)
             #print(x_tp1.shape)
@@ -415,7 +412,6 @@ def train(rank, gpu, args):
             
             
             x_t, x_tp1 = q_sample_pairs(coeff, real_data, t)
-                
             
             latent_z = torch.randn(batch_size, nz,device=device)
             
