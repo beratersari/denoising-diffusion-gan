@@ -496,7 +496,8 @@ def get_timestep_embedding(timesteps, embedding_dim, max_positions=10000):
 
     # Combine sine and cosine for final embedding
     rotary_emb = torch.cat([torch.sin(rotations), torch.cos(rotations)], dim=-1)
-    return rotary_emb.repeat(timesteps.shape[0], 1)  # Repeat for each element in batch
+    print(rotary_emb)
+    return rotary_emb.repeat(timesteps.shape[0], 1).to(timesteps.device)  # Repeat for each element in batch
 
 
 def _einsum(a, b, c, x, y):
