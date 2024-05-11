@@ -369,7 +369,7 @@ def train(rank, gpu, args):
                 
                 
                 grad_penalty = args.r1_gamma / 2 * grad_penalty
-                grad_penalty.backward(retain_graph=True)
+                grad_penalty.backward()
             else:
                 if global_step % args.lazy_reg == 0:
                     grad_real = torch.autograd.grad(
@@ -381,8 +381,7 @@ def train(rank, gpu, args):
                 
                 
                     grad_penalty = args.r1_gamma / 2 * grad_penalty
-                    grad_penalty.backward(retain_graph=True)
-
+                    grad_penalty.backward()
             # train with fake
             latent_z = torch.randn(batch_size, nz, device=device)
             #print(x_tp1.shape)
@@ -428,7 +427,7 @@ def train(rank, gpu, args):
             errG = F.softplus(-output)
             errG = errG.mean()
             
-            errG.backward(retain_graph=True)
+            errG.backward()
             optimizerG.step()
                 
            
