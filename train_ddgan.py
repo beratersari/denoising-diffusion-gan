@@ -394,7 +394,7 @@ def train(rank, gpu, args):
             
             errD_fake = F.softplus(output)
             errD_fake = errD_fake.mean()
-            errD_fake.backward(retain_graph=True)
+            errD_fake.backward()
     
             
             errD = errD_real + errD_fake
