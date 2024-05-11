@@ -473,18 +473,30 @@ class ResidualBlock(nn.Module):
 ###########################################################################
 
 def get_timestep_embedding(timesteps, embedding_dim, max_positions=10000):
-  assert len(timesteps.shape) == 1  # and timesteps.dtype == tf.int32
-  half_dim = embedding_dim // 2
-  # magic number 10000 is from transformers
-  emb = math.log(max_positions) / (half_dim - 1)
-  emb = torch.exp(torch.arange(half_dim, dtype=torch.float32, device=timesteps.device) * -emb)
-  emb = timesteps.float()[:, None] * emb[None, :]
-  emb = torch.cat([torch.sin(emb), torch.cos(emb)], dim=1)
-  if embedding_dim % 2 == 1:  # zero pad
-    emb = F.pad(emb, (0, 1), mode='constant')
-  assert emb.shape == (timesteps.shape[0], embedding_dim)
-  emb = torch.zeros((timesteps.shape[0], embedding_dim)).to(timesteps.device)
-  return emb
+    """
+    This function generates absolute rotary positional embeddings.
+
+    Args:
+      timesteps: A tensor of integer shape (batch_size,) representing the sequence positions.
+      embedding_dim: The dimension of the embedding.
+      max_positions: The maximum sequence length for which to prepare the rotations.
+
+    Returns:
+      A tensor of shape (batch_size, embedding_dim) containing the absolute rotary embeddings.
+    """
+    assert len(timesteps.shape) == 1
+    half_dim = embedding_dim // 2
+    freqs = math.log(max_positions) / (half_dim - 1)
+
+    # Pre-compute frequencies for all possible positions (independent of timesteps)
+    freqs = torch.exp(torch.arange(half_dim, dtype=torch.float32) * -freqs)
+
+    # One set of rotations for all elements in the batch
+    rotations = freqs[None, :]
+
+    # Combine sine and cosine for final embedding
+    rotary_emb = torch.cat([torch.sin(rotations), torch.cos(rotations)], dim=-1)
+    return rotary_emb.repeat(timesteps.shape[0], 1).to(timesteps.device)  # Repeat for each element in batch
 
 
 def _einsum(a, b, c, x, y):

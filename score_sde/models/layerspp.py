@@ -227,6 +227,7 @@ class SelfAttention(nn.Module):
         # (B, H_Q, 1, Head_Dim) -> (B, 1, H_Q, Head_Dim) -> (B, 1, Dim)
         output = (output.transpose(1, 2).contiguous().view(batch_size, seq_len, -1))
         return self.wo(output) # (B, 1, Dim) -> (B, 1, Dim)
+    
 class AttnBlockpp(nn.Module):
   """Channel-wise self-attention block. Modified from DDPM."""
 
