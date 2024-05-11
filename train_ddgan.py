@@ -199,9 +199,7 @@ def train(rank, gpu, args):
     device = torch.device('cuda:{}'.format(gpu))
     
     batch_size = args.batch_size
-    
     nz = args.nz #latent dimension
-    
     
     if args.dataset == 'cifar10':
         dataset = CIFAR10('./data', train=True, transform=transforms.Compose([
@@ -371,7 +369,7 @@ def train(rank, gpu, args):
                 
                 
                 grad_penalty = args.r1_gamma / 2 * grad_penalty
-                grad_penalty.backward()
+                grad_penalty.backward(retain_graph=True)
             else:
                 if global_step % args.lazy_reg == 0:
                     grad_real = torch.autograd.grad(
@@ -383,7 +381,7 @@ def train(rank, gpu, args):
                 
                 
                     grad_penalty = args.r1_gamma / 2 * grad_penalty
-                    grad_penalty.backward()
+                    grad_penalty.backward(retain_graph=True)
 
             # train with fake
             latent_z = torch.randn(batch_size, nz, device=device)
@@ -397,7 +395,7 @@ def train(rank, gpu, args):
             
             errD_fake = F.softplus(output)
             errD_fake = errD_fake.mean()
-            errD_fake.backward()
+            errD_fake.backward(retain_graph=True)
     
             
             errD = errD_real + errD_fake
@@ -415,7 +413,6 @@ def train(rank, gpu, args):
             
             
             x_t, x_tp1 = q_sample_pairs(coeff, real_data, t)
-                
             
             latent_z = torch.randn(batch_size, nz,device=device)
             
@@ -431,7 +428,7 @@ def train(rank, gpu, args):
             errG = F.softplus(-output)
             errG = errG.mean()
             
-            errG.backward()
+            errG.backward(retain_graph=True)
             optimizerG.step()
                 
            
