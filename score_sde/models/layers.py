@@ -483,7 +483,6 @@ def get_timestep_embedding(timesteps, embedding_dim, max_positions=10000):
   if embedding_dim % 2 == 1:  # zero pad
     emb = F.pad(emb, (0, 1), mode='constant')
   assert emb.shape == (timesteps.shape[0], embedding_dim)
-  emb = torch.zeros((timesteps.shape[0], embedding_dim)).to(timesteps.device)
   return emb
 
 
