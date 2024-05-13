@@ -157,7 +157,7 @@ def sample_and_test(args):
     
     pos_coeff = Posterior_Coefficients(args, device)
         
-    iters_needed = 50000 //args.batch_size
+    iters_needed = args.iters //args.batch_size
     
     save_dir = "./generated_samples/{}".format(args.dataset)
     
@@ -262,6 +262,7 @@ if __name__ == '__main__':
     parser.add_argument('--z_emb_dim', type=int, default=256)
     parser.add_argument('--t_emb_dim', type=int, default=256)
     parser.add_argument('--batch_size', type=int, default=200, help='sample generating batch size')
+    parser.add_argument('--iters', type=int, default=5000, help='number of samples')
         
 
 
